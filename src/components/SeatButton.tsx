@@ -22,12 +22,12 @@ export default function SeatButton({ seat, tabIndex, onSelect, onKeyDown }: Prop
     <button
       className={styles.seat}
       data-state={seat.status}
-      data-row={seat.row}
+      data-row={seat.row_num}
       data-col={seat.col}
       aria-label={`${seat.label}, ${STATUS_LABEL[seat.status]}`}
       aria-disabled={isUnavailable ? true : undefined}
       tabIndex={tabIndex}
-      style={{ gridRow: seat.row, gridColumn: seat.col }}
+      style={{ gridRow: seat.row_num, gridColumn: seat.col }}
       onClick={() => { if (!isUnavailable) onSelect(seat) }}
       onKeyDown={(e) => onKeyDown(e, seat)}
     >

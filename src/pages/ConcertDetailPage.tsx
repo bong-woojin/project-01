@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Concert } from '../types/concert'
 
@@ -37,6 +37,7 @@ export default function ConcertDetailPage() {
       <p>{concert.date}</p>
       <p>{concert.venue}</p>
       <p>{concert.description}</p>
+      <Link to={`/concerts/${id}/seats`}>좌석 선택</Link>
     </div>
   )
 }

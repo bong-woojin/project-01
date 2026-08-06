@@ -1,42 +1,98 @@
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
+import { getUserId } from '../lib/userId'
+import { holdSeat } from '../lib/holdSeat'
+import { deriveSeatStatus } from '../lib/deriveSeatStatus'
 import type { Seat } from '../types/seat'
 import SeatGrid from '../components/SeatGrid'
 
-const ROW_LABELS = ['A', 'B', 'C', 'D', 'E']
-
-function makeTestSeats(): Seat[] {
-  const seats: Seat[] = []
-  for (let row = 1; row <= 5; row++) {
-    for (let col = 1; col <= 10; col++) {
-      const base = { id: `${row}-${col}`, row, col, label: `${ROW_LABELS[row - 1]}-${col}` }
-      if (row === 2 && col === 4) {
-        seats.push({ ...base, status: 'sold' })
-      } else if (row === 3 && col === 6) {
-        seats.push({ ...base, status: 'held-by-other' })
-      } else if (row === 1 && col === 3) {
-        seats.push({ ...base, status: 'held-by-me', expiresAt: new Date(Date.now() + 600000).toISOString() })
-      } else {
-        seats.push({ ...base, status: 'available' })
-      }
-    }
-  }
-  return seats
+type RawSeatRow = {
+  id: string
+  concert_id: string
+  row_num: number
+  col: number
+  label: string
+  is_sold: boolean
+  is_held: boolean
+  is_mine: boolean
+  expires_at: string | null
 }
 
-const TEST_SEATS = makeTestSeats()
+const userId = getUserId()
 
 export default function SeatSelectionPage() {
-  const { id } = useParams()
+  const { id } = useParams<{ id: string }>()
+  const [seats, setSeats] = useState<Seat[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
 
-  function handleSeatSelect(seat: Seat) {
-    console.log('선택:', seat.label)
+  useEffect(() => {
+    async function fetchSeats() {
+      const { data, error } = await supabase.rpc('get_seats_with_status', {
+        p_concert_id: id,
+        p_holder_id: userId,
+      })
+      if (error) {
+        console.error(error)
+        setError(error.message)
+        setIsLoading(false)
+        return
+      }
+
+      const now = new Date()
+      setSeats((data as RawSeatRow[]).map(row => ({
+        id: row.id,
+        row_num: row.row_num,
+        col: row.col,
+        label: row.label,
+        ...deriveSeatStatus({
+          isHeld: row.is_held,
+          isMine: row.is_mine,
+          expiresAt: row.expires_at,
+          isSold: row.is_sold,
+        }, now),
+      })))
+      setIsLoading(false)
+    }
+
+    fetchSeats()
+  }, [id])
+
+  async function handleSeatSelect(seat: Seat) {
+    if (seat.status !== 'available') return
+
+    try {
+      const result = await holdSeat(seat.id, userId)
+
+      if (result.success) {
+        setSeats(prev => prev.map(s =>
+          s.id === seat.id
+            ? { ...s, status: 'held-by-me' as const, expiresAt: result.expiresAt }
+            : s
+        ))
+        setMessage(`${seat.label} 선점 완료. 5분 안에 예매를 완료해 주세요.`)
+      } else {
+        setMessage(
+          result.reason === 'sold'
+            ? '판매 완료된 좌석입니다.'
+            : '방금 다른 분이 선점했습니다.'
+        )
+      }
+    } catch {
+      setMessage('오류가 발생했습니다. 다시 시도해 주세요.')
+    }
   }
+
+  if (isLoading) return <p>로딩 중...</p>
+  if (error) return <p>오류: {error}</p>
 
   return (
     <div>
       <h1>좌석 선택</h1>
-      <p>공연 ID: {id}</p>
-      <SeatGrid seats={TEST_SEATS} onSeatSelect={handleSeatSelect} />
+      {message && <p role="alert">{message}</p>}
+      <SeatGrid seats={seats} onSeatSelect={handleSeatSelect} />
     </div>
   )
 }

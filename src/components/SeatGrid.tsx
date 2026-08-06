@@ -15,21 +15,21 @@ const DIRECTIONS = ['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'Home', '
 export default function SeatGrid({ seats, onSeatSelect }: Props) {
   const gridRef = useRef<HTMLDivElement>(null)
 
-  const seatMap = new Map(seats.map(s => [`${s.row},${s.col}`, s]))
+  const seatMap = new Map(seats.map(s => [`${s.row_num},${s.col}`, s]))
 
-  const maxRow = Math.max(...seats.map(s => s.row))
+  const maxRow = Math.max(...seats.map(s => s.row_num))
   const maxCol = Math.max(...seats.map(s => s.col))
 
-  // grid[row-1][col-1] = true → 해당 위치에 좌석 있음
+  // grid[row_num-1][col-1] = true → 해당 위치에 좌석 있음
   const grid: boolean[][] = Array.from({ length: maxRow }, (_, r) =>
     Array.from({ length: maxCol }, (_, c) => seatMap.has(`${r + 1},${c + 1}`))
   )
 
   // 초기 포커스: 가장 앞 행, 가장 앞 열
   const firstSeat = seats.reduce((a, b) =>
-    a.row < b.row || (a.row === b.row && a.col < b.col) ? a : b
+    a.row_num < b.row_num || (a.row_num === b.row_num && a.col < b.col) ? a : b
   )
-  const [focusedPos, setFocusedPos] = useState<Position>({ row: firstSeat.row, col: firstSeat.col })
+  const [focusedPos, setFocusedPos] = useState<Position>({ row: firstSeat.row_num, col: firstSeat.col })
 
   function moveFocus(next: Position) {
     setFocusedPos(next)
@@ -45,7 +45,7 @@ export default function SeatGrid({ seats, onSeatSelect }: Props) {
 
     e.preventDefault()
     const next = getNextFocusPosition(
-      { row: seat.row, col: seat.col },
+      { row: seat.row_num, col: seat.col },
       e.key as Direction,
       grid
     )
@@ -63,7 +63,7 @@ export default function SeatGrid({ seats, onSeatSelect }: Props) {
         <SeatButton
           key={seat.id}
           seat={seat}
-          tabIndex={seat.row === focusedPos.row && seat.col === focusedPos.col ? 0 : -1}
+          tabIndex={seat.row_num === focusedPos.row && seat.col === focusedPos.col ? 0 : -1}
           onSelect={onSeatSelect}
           onKeyDown={handleKeyDown}
         />

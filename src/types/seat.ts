@@ -1,9 +1,9 @@
 // 상태와 무관하게 모든 좌석이 가지는 공통 필드
 export type SeatBase = {
   id: string
-  row: number    // 행 번호 (1부터 시작)
-  col: number    // 열 번호 (1부터 시작)
-  label: string  // 화면에 표시할 좌석 이름 (예: "A-1")
+  row_num: number  // 행 번호 (1부터 시작) — DB column명과 동일
+  col: number      // 열 번호 (1부터 시작)
+  label: string    // 화면에 표시할 좌석 이름 (예: "A-1")
 }
 
 // 상태별로 가질 수 있는 필드가 다름 — status로 narrowing
