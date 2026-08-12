@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getUserId } from '../lib/userId'
@@ -20,6 +20,23 @@ type RawSeatRow = {
 }
 
 const userId = getUserId()
+const POLL_INTERVAL = 5000
+
+function rawToSeats(data: RawSeatRow[]): Seat[] {
+  const now = new Date()
+  return data.map(row => ({
+    id: row.id,
+    row_num: row.row_num,
+    col: row.col,
+    label: row.label,
+    ...deriveSeatStatus({
+      isHeld: row.is_held,
+      isMine: row.is_mine,
+      expiresAt: row.expires_at,
+      isSold: row.is_sold,
+    }, now),
+  }))
+}
 
 export default function SeatSelectionPage() {
   const { id } = useParams<{ id: string }>()
@@ -27,37 +44,30 @@ export default function SeatSelectionPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  async function fetchSeats() {
+    const { data, error } = await supabase.rpc('get_seats_with_status', {
+      p_concert_id: id,
+      p_holder_id: userId,
+    })
+    if (error) {
+      console.error(error)
+      setError(error.message)
+      setIsLoading(false)
+      return
+    }
+    setSeats(rawToSeats(data as RawSeatRow[]))
+    setIsLoading(false)
+  }
 
   useEffect(() => {
-    async function fetchSeats() {
-      const { data, error } = await supabase.rpc('get_seats_with_status', {
-        p_concert_id: id,
-        p_holder_id: userId,
-      })
-      if (error) {
-        console.error(error)
-        setError(error.message)
-        setIsLoading(false)
-        return
-      }
-
-      const now = new Date()
-      setSeats((data as RawSeatRow[]).map(row => ({
-        id: row.id,
-        row_num: row.row_num,
-        col: row.col,
-        label: row.label,
-        ...deriveSeatStatus({
-          isHeld: row.is_held,
-          isMine: row.is_mine,
-          expiresAt: row.expires_at,
-          isSold: row.is_sold,
-        }, now),
-      })))
-      setIsLoading(false)
-    }
-
     fetchSeats()
+
+    timerRef.current = setInterval(fetchSeats, POLL_INTERVAL)
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current)
+    }
   }, [id])
 
   async function handleSeatSelect(seat: Seat) {
