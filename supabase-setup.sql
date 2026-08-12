@@ -70,7 +70,49 @@ begin
 end;
 $$;
 
--- 7. 시드 데이터
+-- 7. bookings 테이블
+create table bookings (
+  id uuid primary key default gen_random_uuid(),
+  concert_id uuid references concerts(id),
+  seat_id uuid references seats(id),
+  holder_id text not null,
+  booker_name text not null,
+  booker_phone text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table bookings enable row level security;
+create policy "bookings 읽기" on bookings for select using (true);
+
+-- 8. confirm_booking RPC
+create or replace function confirm_booking(p_seat_id uuid, p_holder_id text, p_booker_name text, p_booker_phone text)
+returns json
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_seat record;
+  v_hold_id uuid;
+  v_booking_id uuid;
+begin
+  select * into v_seat from seats where id = p_seat_id;
+  if not found then return json_build_object('success', false, 'reason', 'not_found'); end if;
+  if v_seat.is_sold then return json_build_object('success', false, 'reason', 'already_sold'); end if;
+
+  select id into v_hold_id from seat_holds
+  where seat_id = p_seat_id and holder_id = p_holder_id and expires_at > now() limit 1;
+  if not found then return json_build_object('success', false, 'reason', 'hold_expired'); end if;
+
+  insert into bookings (concert_id, seat_id, holder_id, booker_name, booker_phone)
+  values (v_seat.concert_id, p_seat_id, p_holder_id, p_booker_name, p_booker_phone)
+  returning id into v_booking_id;
+
+  update seats set is_sold = true where id = p_seat_id;
+
+  return json_build_object('success', true, 'booking_id', v_booking_id);
+end;
+$$;
+
+-- 9. 시드 데이터
 insert into seats (concert_id, row_num, col, label)
 select
   c.id,

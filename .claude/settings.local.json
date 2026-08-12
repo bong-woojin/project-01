@@ -5,7 +5,15 @@
       "Bash(npm install *)",
       "Bash(npm audit *)",
       "Bash(npm list *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "WebFetch(domain:project-01-woojin4.vercel.app)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'feat: 좌석 상태 타입 모델링 및 deriveSeatStatus 구현 *)",
+      "Bash(git commit -m 'feat: 공연 목록 및 공연 상세 페이지 구현 *)",
+      "Bash(npx vitest *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

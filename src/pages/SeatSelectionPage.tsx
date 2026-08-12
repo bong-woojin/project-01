@@ -53,10 +53,14 @@ export default function SeatSelectionPage() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   async function fetchSeats() {
+    const t0 = performance.now()
     const { data, error } = await supabase.rpc('get_seats_with_status', {
       p_concert_id: id,
       p_holder_id: userId,
     })
+    if (import.meta.env.DEV) {
+      console.info(`[perf] get_seats_with_status: ${(performance.now() - t0).toFixed(1)}ms (${data?.length ?? 0}석)`)
+    }
     if (error) {
       console.error(error)
       setError(error.message)
