@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getUserId } from '../lib/userId'
 import { holdSeat } from '../lib/holdSeat'
+import { confirmBooking } from '../lib/confirmBooking'
 import { deriveSeatStatus } from '../lib/deriveSeatStatus'
 import type { Seat } from '../types/seat'
 import SeatGrid from '../components/SeatGrid'
@@ -40,10 +41,15 @@ function rawToSeats(data: RawSeatRow[]): Seat[] {
 
 export default function SeatSelectionPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const [seats, setSeats] = useState<Seat[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [selectedSeatId, setSelectedSeatId] = useState<string | null>(null)
+  const [bookerName, setBookerName] = useState('')
+  const [bookerPhone, setBookerPhone] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   async function fetchSeats() {
@@ -63,11 +69,8 @@ export default function SeatSelectionPage() {
 
   useEffect(() => {
     fetchSeats()
-
     timerRef.current = setInterval(fetchSeats, POLL_INTERVAL)
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
-    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current) }
   }, [id])
 
   async function handleSeatSelect(seat: Seat) {
@@ -75,14 +78,14 @@ export default function SeatSelectionPage() {
 
     try {
       const result = await holdSeat(seat.id, userId)
-
       if (result.success) {
         setSeats(prev => prev.map(s =>
           s.id === seat.id
             ? { ...s, status: 'held-by-me' as const, expiresAt: result.expiresAt }
             : s
         ))
-        setMessage(`${seat.label} 선점 완료. 5분 안에 예매를 완료해 주세요.`)
+        setSelectedSeatId(seat.id)
+        setMessage(null)
       } else {
         setMessage(
           result.reason === 'sold'
@@ -95,6 +98,34 @@ export default function SeatSelectionPage() {
     }
   }
 
+  async function handleBookingSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!selectedSeatId) return
+    setIsSubmitting(true)
+
+    try {
+      const result = await confirmBooking(selectedSeatId, userId, bookerName, bookerPhone)
+      if (result.success) {
+        navigate(`/bookings/${result.bookingId}`)
+      } else {
+        setMessage(
+          result.reason === 'hold_expired'
+            ? '선점이 만료되었습니다. 좌석을 다시 선택해 주세요.'
+            : '예매할 수 없는 좌석입니다.'
+        )
+        setSelectedSeatId(null)
+      }
+    } catch (err) {
+      console.error('confirm_booking error:', err)
+      setMessage('오류가 발생했습니다. 다시 시도해 주세요.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const selectedSeat = seats.find(s => s.id === selectedSeatId)
+  const isHoldExpired = selectedSeatId !== null && selectedSeat?.status !== 'held-by-me'
+
   if (isLoading) return <p>로딩 중...</p>
   if (error) return <p>오류: {error}</p>
 
@@ -103,6 +134,44 @@ export default function SeatSelectionPage() {
       <h1>좌석 선택</h1>
       {message && <p role="alert">{message}</p>}
       <SeatGrid seats={seats} onSeatSelect={handleSeatSelect} />
+
+      {selectedSeatId && (
+        <div>
+          <h2>예매자 정보</h2>
+          {isHoldExpired ? (
+            <p role="alert">선점이 만료되었습니다. 좌석을 다시 선택해 주세요.</p>
+          ) : (
+            <>
+              <p>선택 좌석: {selectedSeat?.label}</p>
+              <form onSubmit={handleBookingSubmit}>
+                <div>
+                  <label htmlFor="booker-name">이름</label>
+                  <input
+                    id="booker-name"
+                    type="text"
+                    value={bookerName}
+                    onChange={e => setBookerName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="booker-phone">연락처</label>
+                  <input
+                    id="booker-phone"
+                    type="tel"
+                    value={bookerPhone}
+                    onChange={e => setBookerPhone(e.target.value)}
+                    required
+                  />
+                </div>
+                <button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? '예매 중...' : '예매 완료'}
+                </button>
+              </form>
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }
