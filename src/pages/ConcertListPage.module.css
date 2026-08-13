@@ -1,0 +1,44 @@
+.heading {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: #e5e7eb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.item {
+  background: #fff;
+}
+
+.link {
+  display: block;
+  padding: 16px 20px;
+  color: #1a1a1a;
+  transition: background 0.1s;
+}
+
+.link:hover {
+  background: #f3f4f6;
+  text-decoration: none;
+}
+
+.title {
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.date {
+  font-size: 0.875rem;
+  color: #6b7280;
+}

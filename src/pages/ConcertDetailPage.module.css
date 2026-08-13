@@ -1,0 +1,49 @@
+.back {
+  display: inline-block;
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 24px;
+}
+
+.back:hover {
+  color: #1a1a1a;
+  text-decoration: none;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #4b5563;
+  margin-bottom: 24px;
+  font-size: 0.95rem;
+}
+
+.description {
+  color: #374151;
+  line-height: 1.7;
+  margin-bottom: 32px;
+  white-space: pre-line;
+}
+
+.cta {
+  display: inline-block;
+  padding: 12px 28px;
+  background: #1a1a1a;
+  color: #fff;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: background 0.15s;
+}
+
+.cta:hover {
+  background: #374151;
+  text-decoration: none;
+}

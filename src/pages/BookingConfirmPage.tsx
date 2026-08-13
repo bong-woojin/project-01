@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { formatDate } from '../lib/formatDate'
+import styles from './BookingConfirmPage.module.css'
 
 type Booking = {
   id: string
@@ -35,16 +36,36 @@ export default function BookingConfirmPage() {
   if (!booking) return <p>예매 내역을 찾을 수 없습니다.</p>
 
   return (
-    <div>
-      <h1>예매 완료</h1>
-      <p>공연: {booking.concerts.title}</p>
-      <p>일시: {formatDate(booking.concerts.date)}</p>
-      <p>장소: {booking.concerts.venue}</p>
-      <p>좌석: {booking.seats.label}</p>
-      <p>예매자: {booking.booker_name}</p>
-      <p>연락처: {booking.booker_phone}</p>
-      <p>예매번호: {booking.id}</p>
-      <Link to="/">공연 목록으로</Link>
-    </div>
+    <>
+      <span className={styles.badge}>예매 완료</span>
+      <h1 className={styles.title}>{booking.concerts.title}</h1>
+      <div className={styles.card}>
+        <div className={styles.row}>
+          <span className={styles.label}>일시</span>
+          <span className={styles.value}>{formatDate(booking.concerts.date)}</span>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.label}>장소</span>
+          <span className={styles.value}>{booking.concerts.venue}</span>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.label}>좌석</span>
+          <span className={styles.value}>{booking.seats.label}</span>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.label}>예매자</span>
+          <span className={styles.value}>{booking.booker_name}</span>
+        </div>
+        <div className={styles.row}>
+          <span className={styles.label}>연락처</span>
+          <span className={styles.value}>{booking.booker_phone}</span>
+        </div>
+        <div>
+          <p className={styles.label} style={{ marginBottom: 4 }}>예매번호</p>
+          <p className={styles.bookingId}>{booking.id}</p>
+        </div>
+      </div>
+      <Link to="/" className={styles.home}>공연 목록으로</Link>
+    </>
   )
 }

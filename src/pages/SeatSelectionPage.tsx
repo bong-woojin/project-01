@@ -8,6 +8,7 @@ import { deriveSeatStatus } from '../lib/deriveSeatStatus'
 import { useCountdown, formatCountdown } from '../lib/useCountdown'
 import type { Seat } from '../types/seat'
 import SeatGrid from '../components/SeatGrid'
+import styles from './SeatSelectionPage.module.css'
 
 type BookingFormProps = {
   seat: Seat & { status: 'held-by-me'; expiresAt: string }
@@ -27,40 +28,28 @@ function BookingForm({ seat, onSubmit, isSubmitting }: BookingFormProps) {
   }
 
   return (
-    <div>
-      <h2>예매자 정보</h2>
-      <p>선택 좌석: {seat.label}</p>
-      <p>
+    <div className={styles.formPanel}>
+      <h2 className={styles.formTitle}>예매자 정보</h2>
+      <p className={styles.selectedSeat}>선택 좌석: {seat.label}</p>
+      <p className={styles.countdown}>
         남은 시간:{' '}
-        <strong style={{ color: remaining <= 60 ? 'red' : 'inherit' }}>
+        <strong style={{ color: remaining <= 60 ? '#dc2626' : '#1a1a1a' }}>
           {formatCountdown(remaining)}
         </strong>
       </p>
       {expired ? (
-        <p role="alert">선점이 만료되었습니다. 좌석을 다시 선택해 주세요.</p>
+        <p className={styles.expiredMsg} role="alert">선점이 만료되었습니다. 좌석을 다시 선택해 주세요.</p>
       ) : (
         <form onSubmit={handleSubmit}>
-          <div>
+          <div className={styles.formGroup}>
             <label htmlFor="booker-name">이름</label>
-            <input
-              id="booker-name"
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              required
-            />
+            <input id="booker-name" type="text" value={name} onChange={e => setName(e.target.value)} required />
           </div>
-          <div>
+          <div className={styles.formGroup}>
             <label htmlFor="booker-phone">연락처</label>
-            <input
-              id="booker-phone"
-              type="tel"
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-              required
-            />
+            <input id="booker-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} required />
           </div>
-          <button type="submit" disabled={isSubmitting}>
+          <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
             {isSubmitting ? '예매 중...' : '예매 완료'}
           </button>
         </form>
@@ -192,8 +181,14 @@ export default function SeatSelectionPage() {
 
   return (
     <div>
-      <h1>좌석 선택</h1>
-      {message && <p role="alert">{message}</p>}
+      <h1 className={styles.heading}>좌석 선택</h1>
+      {message && <p className={styles.alert} role="alert">{message}</p>}
+      <div className={styles.legend}>
+        <span className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#e8f4fd', border: '1px solid #4a90d9' }} />예매 가능</span>
+        <span className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#d4edda', border: '1px solid #28a745' }} />내가 선점</span>
+        <span className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#f8d7da', border: '1px solid #dc3545' }} />선점 중</span>
+        <span className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#6c757d' }} />판매 완료</span>
+      </div>
       <SeatGrid seats={seats} onSeatSelect={handleSeatSelect} />
       {heldSeat && (
         <BookingForm
