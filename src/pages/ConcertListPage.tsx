@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { formatDate } from '../lib/formatDate'
 import type { Concert } from '../types/concert'
 
 export default function ConcertListPage() {
@@ -40,7 +41,7 @@ export default function ConcertListPage() {
       {concerts.map((concert) => (
         <li key={concert.id}>
           <Link to={`/concerts/${concert.id}`}>
-            {concert.title} — {concert.date}
+            {concert.title} — {formatDate(concert.date)}
           </Link>
         </li>
       ))}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { formatDate } from '../lib/formatDate'
 
 type Booking = {
   id: string
@@ -37,7 +38,7 @@ export default function BookingConfirmPage() {
     <div>
       <h1>예매 완료</h1>
       <p>공연: {booking.concerts.title}</p>
-      <p>일시: {booking.concerts.date}</p>
+      <p>일시: {formatDate(booking.concerts.date)}</p>
       <p>장소: {booking.concerts.venue}</p>
       <p>좌석: {booking.seats.label}</p>
       <p>예매자: {booking.booker_name}</p>

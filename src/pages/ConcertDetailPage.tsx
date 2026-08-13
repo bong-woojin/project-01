@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { formatDate } from '../lib/formatDate'
 import type { Concert } from '../types/concert'
 
 export default function ConcertDetailPage() {
@@ -34,7 +35,7 @@ export default function ConcertDetailPage() {
   return (
     <div>
       <h1>{concert.title}</h1>
-      <p>{concert.date}</p>
+      <p>{formatDate(concert.date)}</p>
       <p>{concert.venue}</p>
       <p>{concert.description}</p>
       <Link to={`/concerts/${id}/seats`}>좌석 선택</Link>
