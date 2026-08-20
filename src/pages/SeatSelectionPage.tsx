@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getUserId } from '../lib/userId'
@@ -14,13 +14,18 @@ type BookingFormProps = {
   seat: Seat & { status: 'held-by-me'; expiresAt: string }
   onSubmit: (name: string, phone: string) => Promise<void>
   isSubmitting: boolean
+  onExpired: () => void
 }
 
-function BookingForm({ seat, onSubmit, isSubmitting }: BookingFormProps) {
+function BookingForm({ seat, onSubmit, isSubmitting, onExpired }: BookingFormProps) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const remaining = useCountdown(seat.expiresAt)
   const expired = remaining <= 0
+
+  useEffect(() => {
+    if (expired) onExpired()
+  }, [expired, onExpired])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -100,7 +105,7 @@ export default function SeatSelectionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  async function fetchSeats() {
+  const fetchSeats = useCallback(async () => {
     const t0 = performance.now()
     const { data, error } = await supabase.rpc('get_seats_with_status', {
       p_concert_id: id,
@@ -115,18 +120,31 @@ export default function SeatSelectionPage() {
       setIsLoading(false)
       return
     }
-    setSeats(rawToSeats(data as RawSeatRow[]))
+    const processed = rawToSeats(data as RawSeatRow[])
+    setSeats(processed)
+    setSelectedSeatId(prev => {
+      if (prev) return prev
+      const held = processed.find(s => s.status === 'held-by-me')
+      return held?.id ?? null
+    })
     setIsLoading(false)
-  }
+  }, [id])
 
   useEffect(() => {
     fetchSeats()
     timerRef.current = setInterval(fetchSeats, POLL_INTERVAL)
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
-  }, [id])
+  }, [fetchSeats])
 
   async function handleSeatSelect(seat: Seat) {
     if (seat.status !== 'available') return
+
+    if (selectedSeatId && selectedSeatId !== seat.id) {
+      await supabase.rpc('release_hold', {
+        p_seat_id: selectedSeatId,
+        p_holder_id: userId,
+      })
+    }
 
     try {
       const result = await holdSeat(seat.id, userId)
@@ -134,6 +152,8 @@ export default function SeatSelectionPage() {
         setSeats(prev => prev.map(s =>
           s.id === seat.id
             ? { ...s, status: 'held-by-me' as const, expiresAt: result.expiresAt }
+            : s.id === selectedSeatId
+            ? { ...s, status: 'available' as const }
             : s
         ))
         setSelectedSeatId(seat.id)
@@ -178,6 +198,7 @@ export default function SeatSelectionPage() {
 
   if (isLoading) return <p>로딩 중...</p>
   if (error) return <p>오류: {error}</p>
+  if (seats.length === 0) return <p>등록된 좌석이 없습니다.</p>
 
   return (
     <div>
@@ -195,6 +216,7 @@ export default function SeatSelectionPage() {
           seat={heldSeat}
           onSubmit={handleBookingFormSubmit}
           isSubmitting={isSubmitting}
+          onExpired={fetchSeats}
         />
       )}
     </div>
