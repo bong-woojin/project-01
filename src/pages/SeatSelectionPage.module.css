@@ -108,6 +108,21 @@
   cursor: not-allowed;
 }
 
+.checkLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.checkLabel input[type="checkbox"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
 .expiredMsg {
   padding: 12px;
   background: #fef2f2;

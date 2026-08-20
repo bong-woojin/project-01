@@ -17,9 +17,17 @@ type BookingFormProps = {
   onExpired: () => void
 }
 
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, '')
+  if (digits.length <= 3) return digits
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7, 11)}`
+}
+
 function BookingForm({ seat, onSubmit, isSubmitting, onExpired }: BookingFormProps) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [agreed, setAgreed] = useState(false)
   const remaining = useCountdown(seat.expiresAt)
   const expired = remaining <= 0
 
@@ -48,13 +56,40 @@ function BookingForm({ seat, onSubmit, isSubmitting, onExpired }: BookingFormPro
         <form onSubmit={handleSubmit}>
           <div className={styles.formGroup}>
             <label htmlFor="booker-name">이름</label>
-            <input id="booker-name" type="text" value={name} onChange={e => setName(e.target.value)} required />
+            <input
+              id="booker-name"
+              type="text"
+              autoComplete="name"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+            />
           </div>
           <div className={styles.formGroup}>
             <label htmlFor="booker-phone">연락처</label>
-            <input id="booker-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} required />
+            <input
+              id="booker-phone"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              onBlur={e => setPhone(formatPhone(e.target.value))}
+              required
+            />
           </div>
-          <button type="submit" className={styles.submitBtn} disabled={isSubmitting}>
+          <div className={styles.formGroup}>
+            <label className={styles.checkLabel}>
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={e => setAgreed(e.target.checked)}
+                required
+              />
+              예매자 정보(이름, 연락처)의 수집·이용에 동의합니다 (필수)
+            </label>
+          </div>
+          <button type="submit" className={styles.submitBtn} disabled={isSubmitting || !agreed}>
             {isSubmitting ? '예매 중...' : '예매 완료'}
           </button>
         </form>
@@ -139,6 +174,7 @@ export default function SeatSelectionPage() {
   async function handleSeatSelect(seat: Seat) {
     if (seat.status !== 'available') return
 
+    // 이전 선점 해제
     if (selectedSeatId && selectedSeatId !== seat.id) {
       await supabase.rpc('release_hold', {
         p_seat_id: selectedSeatId,
