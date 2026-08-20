@@ -1,3 +1,5 @@
+-- ※ concerts 테이블이 먼저 존재해야 합니다.
+
 -- 1. seats 테이블
 create table seats (
   id uuid primary key default gen_random_uuid(),
@@ -26,6 +28,7 @@ create index on seat_holds(expires_at);
 alter table seats enable row level security;
 alter table seat_holds enable row level security;
 create policy "seats 읽기" on seats for select using (true);
+-- seat_holds: 정책 없음. RPC(security definer)를 통해서만 접근 가능.
 
 -- 5. 좌석 상태 조회 RPC
 create or replace function get_seats_with_status(p_concert_id uuid, p_holder_id text)
@@ -82,7 +85,7 @@ create table bookings (
 );
 
 alter table bookings enable row level security;
-create policy "bookings 읽기" on bookings for select using (true);
+-- bookings: 직접 읽기 정책 없음. get_booking RPC(security definer)를 통해서만 읽을 수 있다.
 
 -- 8. confirm_booking RPC
 create or replace function confirm_booking(p_seat_id uuid, p_holder_id text, p_booker_name text, p_booker_phone text)
@@ -112,14 +115,40 @@ begin
 end;
 $$;
 
--- 9. 시드 데이터
-insert into seats (concert_id, row_num, col, label)
-select
-  c.id,
-  r.row_num,
-  col.col,
-  chr(64 + r.row_num) || '-' || col.col::text
-from concerts c
-cross join generate_series(1, 5) as r(row_num)
-cross join generate_series(1, 10) as col(col)
-where c.is_test = false;
+-- 9. release_hold RPC
+create or replace function release_hold(p_seat_id uuid, p_holder_id text)
+returns void
+language sql security definer set search_path = public
+as $$
+  delete from seat_holds
+  where seat_id = p_seat_id and holder_id = p_holder_id;
+$$;
+
+-- 10. get_booking RPC
+create or replace function get_booking(p_booking_id uuid)
+returns table(
+  id uuid,
+  booker_name text,
+  booker_phone text,
+  created_at timestamptz,
+  seat_label text,
+  concert_title text,
+  concert_date timestamptz,
+  concert_venue text
+)
+language sql security definer set search_path = public
+as $$
+  select
+    b.id,
+    b.booker_name,
+    b.booker_phone,
+    b.created_at,
+    s.label as seat_label,
+    c.title as concert_title,
+    c.date as concert_date,
+    c.venue as concert_venue
+  from bookings b
+  join seats s on s.id = b.seat_id
+  join concerts c on c.id = b.concert_id
+  where b.id = p_booking_id;
+$$;

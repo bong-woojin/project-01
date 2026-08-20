@@ -9,8 +9,10 @@ type Booking = {
   booker_name: string
   booker_phone: string
   created_at: string
-  seats: { label: string }
-  concerts: { title: string; date: string; venue: string }
+  seat_label: string
+  concert_title: string
+  concert_date: string
+  concert_venue: string
 }
 
 export default function BookingConfirmPage() {
@@ -20,13 +22,10 @@ export default function BookingConfirmPage() {
 
   useEffect(() => {
     async function fetchBooking() {
-      const { data } = await supabase
-        .from('bookings')
-        .select('*, seats(label), concerts(title, date, venue)')
-        .eq('id', bookingId)
-        .single()
-
-      if (data) setBooking(data as Booking)
+      const { data, error } = await supabase.rpc('get_booking', {
+        p_booking_id: bookingId,
+      })
+      if (!error && data && data.length > 0) setBooking(data[0] as Booking)
       setIsLoading(false)
     }
     fetchBooking()
@@ -38,19 +37,19 @@ export default function BookingConfirmPage() {
   return (
     <>
       <span className={styles.badge}>예매 완료</span>
-      <h1 className={styles.title}>{booking.concerts.title}</h1>
+      <h1 className={styles.title}>{booking.concert_title}</h1>
       <div className={styles.card}>
         <div className={styles.row}>
           <span className={styles.label}>일시</span>
-          <span className={styles.value}>{formatDate(booking.concerts.date)}</span>
+          <span className={styles.value}>{formatDate(booking.concert_date)}</span>
         </div>
         <div className={styles.row}>
           <span className={styles.label}>장소</span>
-          <span className={styles.value}>{booking.concerts.venue}</span>
+          <span className={styles.value}>{booking.concert_venue}</span>
         </div>
         <div className={styles.row}>
           <span className={styles.label}>좌석</span>
-          <span className={styles.value}>{booking.seats.label}</span>
+          <span className={styles.value}>{booking.seat_label}</span>
         </div>
         <div className={styles.row}>
           <span className={styles.label}>예매자</span>
